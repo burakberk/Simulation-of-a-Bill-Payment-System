@@ -101,14 +101,14 @@ void *write_buffer(void *customer_param){
     customer* current_customer = (customer*)customer_param;
     int atm = current_customer->atm;
 
-    cout << "girdim, type: " << atm << endl;
+  /*  cout << "girdim, type: " << atm << endl;*/
     if(atm == 1){
         sem_wait(&empty1);
         pthread_mutex_lock(&m1);
         // do stuff
-
-        cout << "TEST" << endl;
-
+        atm_buffer[0].amount = current_customer->amount;
+        atm_buffer[0].type = current_customer->type;
+        atm_buffer[0].atm = current_customer->atm;
 
         //
         pthread_mutex_unlock(&m1);
@@ -160,6 +160,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m1);
             sem_post(&empty1);
+            break;
         }
 
     }
@@ -172,6 +173,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m2);
             sem_post(&empty2);
+            break;
         }
     }
     else if(atm == 3){
@@ -183,6 +185,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m3);
             sem_post(&empty3);
+            break;
         }
     }
     else if(atm == 4){
@@ -194,6 +197,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m4);
             sem_post(&empty4);
+            break;
         }
     }
     else if(atm == 5){
@@ -205,6 +209,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m5);
             sem_post(&empty5);
+            break;
         }
     }
     else if(atm == 6){
@@ -216,6 +221,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m6);
             sem_post(&empty6);
+            break;
         }
     }
     else if(atm == 7){
@@ -227,6 +233,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m7);
             sem_post(&empty7);
+            break;
         }
     }
     else if(atm == 8){
@@ -238,6 +245,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m8);
             sem_post(&empty8);
+            break;
         }
     }
     else if(atm == 9){
@@ -249,6 +257,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m9);
             sem_post(&empty9);
+            break;
         }
     }
     else if(atm == 10){
@@ -260,6 +269,7 @@ void *read_buffer(void *atm_param){
             //
             pthread_mutex_unlock(&m10);
             sem_post(&empty10);
+            break;
         }
     }
 
