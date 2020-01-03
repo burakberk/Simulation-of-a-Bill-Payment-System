@@ -250,7 +250,7 @@ void *write_buffer(void *customer_param){ // Actually customer thread, manages w
     delete current_customer; // Delete current_customer to not leak memory
 }
 
-void print_line(customer current_customer){
+void print_line(customer current_customer){ // Print current line to file
     pthread_mutex_lock(&file); // Acquire file mutex
     ofstream out_file;
     out_file.open(outfile_name, std::ios_base::app); // append instead of overwrite
@@ -450,7 +450,8 @@ vector<customer> get_input(string file_name){ // Read the input from the text fi
     return customers; // Return customer map
 }
 
-void print_file(string file_name, int number_of_customers){ // Print account deposits to file.
+void print_file(string file_name){ // Print account deposits to file.
+    pthread_mutex_lock(&file); // Acquire file mutex
     ofstream out_file;
     out_file.open(file_name, ios_base::app); // File to be written into
     // Write account deposits to the end of the file
@@ -461,6 +462,7 @@ void print_file(string file_name, int number_of_customers){ // Print account dep
     out_file << "Telecommunication: " << telecommunication_balance << "TL" << endl;
     out_file << "Water: " << water_balance << "TL" << endl;
     out_file.close(); // Close the file
+    pthread_mutex_unlock(&file); // Release file mutex
 }
 
 int main(int argc, char** argv)
@@ -505,10 +507,10 @@ int main(int argc, char** argv)
     pthread_t atm_threads[10]; // Declare atm threads
 
     /*creating all atm threads*/
-    for(int current_t = 1; current_t < 11; current_t++)
+    for(int current_t = 0; current_t < 10; current_t++)
     {
         int *arg = (int*)malloc(sizeof(*arg)); // Allocate memory for current atm's integer which holds its id
-        *arg = current_t;
+        *arg = current_t+1;
         int result = pthread_create(&atm_threads[current_t], NULL, read_buffer, arg); // Create the ATM thread
 
         if (result !=0)
@@ -522,10 +524,10 @@ int main(int argc, char** argv)
     int NUMBER_OF_THREADS = customers[0].amount; //  First customers actually just presents how many customers there is.
     pthread_t thread[NUMBER_OF_THREADS]; // Declare customer threads
     /*creating all customer threads*/
-    for(int current_t = 1; current_t < NUMBER_OF_THREADS+1; current_t++)
+    for(int current_t = 0; current_t < NUMBER_OF_THREADS; current_t++)
     {
 
-        customer current = customers.at(current_t); // Current customer from customer map
+        customer current = customers.at(current_t+1); // Current customer from customer map
         customer* arg = new customer; // Allocate memory for customer struct
         // Set argumants fields
         arg->atm = current.atm;
@@ -558,7 +560,8 @@ int main(int argc, char** argv)
     exit_atm9 = true;
     exit_atm10 = true;
 
-    print_file(out_file, NUMBER_OF_THREADS); // Pass output file name and number of thread to print the results into file.
+
+    print_file(out_file); // Pass output file name and number of thread to print the results into file.
 
     return 0;
 }
