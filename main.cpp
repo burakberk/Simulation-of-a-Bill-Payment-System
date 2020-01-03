@@ -11,9 +11,8 @@
 
 using namespace std;
 
-pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t atm_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// Deposit account mutexes
 pthread_mutex_t cableTV = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t electricity = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t gas = PTHREAD_MUTEX_INITIALIZER;
@@ -58,11 +57,6 @@ sem_t full9;
 sem_t full10;
 
 // Declare exit flags for ATMs
-/*
-array<atomic<bool>, 10> exit_flags;*/
-
-/*array<atomic<bool>, 10> exit_flags = {0,0,0,0,0,0,0,0,0,0};*/
-
 atomic<bool> exit_atm1(false);
 atomic<bool> exit_atm2(false);
 atomic<bool> exit_atm3(false);
@@ -74,6 +68,7 @@ atomic<bool> exit_atm8(false);
 atomic<bool> exit_atm9(false);
 atomic<bool> exit_atm10(false);
 
+// Customer struct to represent customers
 struct customer
 {
     int sleep_time;
@@ -83,23 +78,23 @@ struct customer
     int id;
 };
 
+// Deposit accounts
 int cableTV_balance = 0;
 int electricity_balance = 0;
 int gas_balance = 0;
 int telecommunication_balance = 0;
 int water_balance = 0;
 
-vector<customer> atm_buffer(10);
-vector<customer> log_data;
+vector<customer> atm_buffer(10); // ATM buffers
+vector<customer> log_data; // History of executed deposits
 
-
-void pay_bill(int type, int amount)
+void pay_bill(int type, int amount) // Bill payment module that prevents deadlocks and race conditions
 {
 
     if(type == 1){
-        pthread_mutex_lock(&cableTV);
-        cableTV_balance += amount;
-        pthread_mutex_unlock(&cableTV);
+        pthread_mutex_lock(&cableTV); // Acquire necessary mutex
+        cableTV_balance += amount; // Complete payment
+        pthread_mutex_unlock(&cableTV); // Release mutex lock, other types follow the same procedure
     }
     else if(type == 2){
         pthread_mutex_lock(&electricity);
@@ -124,21 +119,21 @@ void pay_bill(int type, int amount)
 
 }
 
-void *write_buffer(void *customer_param){
-    customer* current_customer = (customer*)customer_param;
-    int atm = current_customer->atm;
-    std::this_thread::sleep_for(std::chrono::milliseconds(current_customer->sleep_time));
+void *write_buffer(void *customer_param){ // Actually customer thread, manages writes done in the ATM buffer. Conceptually producer thread
+    customer* current_customer = (customer*)customer_param; // current customer
+    int atm = current_customer->atm; // current atm
+    std::this_thread::sleep_for(std::chrono::milliseconds(current_customer->sleep_time)); // sleep for outlined time in config file
 
-    if(atm == 1){
-        sem_wait(&empty1);
-        pthread_mutex_lock(&m1);
+    if(atm == 1){ // Pick atm
+        sem_wait(&empty1); // Decrease empty semaphore
+        pthread_mutex_lock(&m1); // Acquire mutex for critical section
         // do stuff
-        atm_buffer[0].amount = current_customer->amount;
-        atm_buffer[0].type = current_customer->type;
-        atm_buffer[0].atm = current_customer->atm;
-        atm_buffer[0].id = current_customer->id;
-        pthread_mutex_unlock(&m1);
-        sem_post(&full1);
+        atm_buffer[0].amount = current_customer->amount; // Set buffer's amount
+        atm_buffer[0].type = current_customer->type; // Set buffer's type(type of bill to be payed)
+        atm_buffer[0].atm = current_customer->atm; // Set buffer's atm
+        atm_buffer[0].id = current_customer->id; // Set buffer's id
+        pthread_mutex_unlock(&m1); // Unlock mutex
+        sem_post(&full1); // Increase full semaphore, other ATM types follow the same procedure
 
     }
     else if(atm == 2){
@@ -247,21 +242,21 @@ void *write_buffer(void *customer_param){
 
     }
 
-    delete current_customer;
+    delete current_customer; // Delete current_customer to not leak memory
 }
 
-void *read_buffer(void *atm_param){
+void *read_buffer(void *atm_param){ // Actually ATM thread. When there is new info, reads it from its buffer and executes payment. Conceptually consumer thread.
 
-    int atm = *((int *) atm_param);
-    if(atm == 1){
-        while(!exit_atm1) {
-            sem_wait(&full1);
-            pthread_mutex_lock(&m1);
+    int atm = *((int *) atm_param); // Current ATM
+    if(atm == 1){ // Pick ATM
+        while(!exit_atm1) { // If not exit condition
+            sem_wait(&full1); // Decrease full semaphore
+            pthread_mutex_lock(&m1); // Acquire mutex
             // do stuff
-            pay_bill(atm_buffer.at(0).type, atm_buffer.at(0).amount);
-            log_data.push_back(atm_buffer.at(0));
-            pthread_mutex_unlock(&m1);
-            sem_post(&empty1);
+            pay_bill(atm_buffer.at(0).type, atm_buffer.at(0).amount); // Execute payment
+            log_data.push_back(atm_buffer.at(0)); // Write current customer to history
+            pthread_mutex_unlock(&m1); // Release mutex
+            sem_post(&empty1); // Increase empty semaphore, other ATM types follow the same procedure
         }
 
     }
@@ -371,33 +366,33 @@ void *read_buffer(void *atm_param){
 
 
 vector<customer> get_input(string file_name){ // Read the input from the text file
-    vector<customer> customers;
+    vector<customer> customers; // Customer map
     ifstream in_file;
-    in_file.open(file_name);
+    in_file.open(file_name); // File to be read
     if (!in_file) {
         cerr << "Unable to open the input file";
         exit(1);
     }
 
-    int id_count = -1;
-    string line;
+    int id_count = -1; // Initialize id count integer
+    string line; //  First line
     customer temp;
-    getline(in_file, line);
-    temp.amount = stoi(line);
-    id_count++;
-    customers.push_back(temp);
+    getline(in_file, line); // Read first line, only holds number of customer data
+    temp.amount = stoi(line); // Store it in temp customer's amount.
+    id_count++; // Increase id count
+    customers.push_back(temp); // Put it in customer map
     while(getline(in_file,line))
     {
-        customer temp;
-        stringstream linestream(line);
-        string value;
+        customer temp; // Current customer
+        stringstream linestream(line); // Current line
+        string value; // Current element to be read
 
-        getline(linestream, value, ',');
-        temp.sleep_time = stoi(value);
-        getline(linestream, value, ',');
-        temp.atm = stoi(value);
-        getline(linestream, value, ',');
-        string a = value;
+        getline(linestream, value, ','); // Get first element
+        temp.sleep_time = stoi(value); // Store it in sleep time
+        getline(linestream, value, ','); // Get second element
+        temp.atm = stoi(value); // Store it in atm field
+        getline(linestream, value, ','); // Get third element
+        string a = value; // Encode type of bill to decimal number
         if(value == "cableTV"){
             temp.type = 1;
         }
@@ -413,27 +408,25 @@ vector<customer> get_input(string file_name){ // Read the input from the text fi
         else if(value == "water"){
             temp.type = 5;
         }
-        getline(linestream, value, ',');
-        temp.amount = stoi(value);
-        temp.id = id_count;
-        id_count++;
-
-        customers.push_back(temp);
+        getline(linestream, value, ','); // Get last element
+        temp.amount = stoi(value); // Store it in amount
+        temp.id = id_count; // Set id count for current customer
+        id_count++; // Increase id count
+        customers.push_back(temp); // Push current customer to customer map
 
     }
-
-    in_file.close();
-    return customers;
+    in_file.close(); // Close file.
+    return customers; // Return customer map
 }
 
-void print_file(string file_name, int number_of_customers){
+void print_file(string file_name, int number_of_customers){ // Print history to file.
     ofstream out_file;
-    out_file.open(file_name);
+    out_file.open(file_name); // File to be written into
 
     for(int i=0; i< number_of_customers; i++){
 
-        customer temp = log_data.at(i);
-        string type;
+        customer temp = log_data.at(i); // Current customer
+        string type; // Decode payment type
         if(temp.type == 1){
             type = "cableTV";
         }
@@ -449,17 +442,17 @@ void print_file(string file_name, int number_of_customers){
         else if(temp.type == 5){
             type = "water";
         }
-        out_file << "Customer" << temp.id + 1 << "," << temp.amount << "," << type << endl;
+        out_file << "Customer" << temp.id + 1 << "," << temp.amount << "," << type << endl; // Write into file
 
     }
-
+    // Write account deposits to the end of the file
     out_file << "All payments are completed." << endl;
-    out_file << "CableTV: " << cableTV_balance << endl;
-    out_file << "Electricity: " << electricity_balance << endl;
-    out_file << "Gas: " << gas_balance << endl;
-    out_file << "Telecommunication: " << telecommunication_balance << endl;
-    out_file << "Water: " << water_balance << endl;
-    out_file.close();
+    out_file << "CableTV: " << cableTV_balance << "TL" << endl;
+    out_file << "Electricity: " << electricity_balance << "TL" << endl;
+    out_file << "Gas: " << gas_balance << "TL" << endl;
+    out_file << "Telecommunication: " << telecommunication_balance << "TL" << endl;
+    out_file << "Water: " << water_balance << "TL" << endl;
+    out_file.close(); // Close the file
 }
 
 int main(int argc, char** argv)
@@ -494,19 +487,16 @@ int main(int argc, char** argv)
     sem_init(&full9, 0, 0);
     sem_init(&full10, 0, 0);
 
-    vector<customer> customers;
-    customers = get_input(argv[1]);
-
-    pthread_t atm_threads[10];
-    int temp_arg_atm[10] ;
+    vector<customer> customers; // Customer map
+    customers = get_input(argv[1]); // Set it to input from file
+    pthread_t atm_threads[10]; // Declare atm threads
 
     /*creating all atm threads*/
     for(int current_t = 1; current_t < 11; current_t++)
     {
-        temp_arg_atm[current_t]   = current_t;
-        int *arg = (int*)malloc(sizeof(*arg));
+        int *arg = (int*)malloc(sizeof(*arg)); // Allocate memory for current atm's integer which holds its id
         *arg = current_t;
-        int result = pthread_create(&atm_threads[current_t], NULL, read_buffer, arg);
+        int result = pthread_create(&atm_threads[current_t], NULL, read_buffer, arg); // Create the ATM thread
 
         if (result !=0)
         {
@@ -517,21 +507,20 @@ int main(int argc, char** argv)
 
     // Creating customer threads
     int NUMBER_OF_THREADS = customers[0].amount; //  First customers actually just presents how many customers there is.
-    pthread_t thread[NUMBER_OF_THREADS];
-    int temp_arg[NUMBER_OF_THREADS] ;
+    pthread_t thread[NUMBER_OF_THREADS]; // Declare customer threads
     /*creating all customer threads*/
     for(int current_t = 1; current_t < NUMBER_OF_THREADS+1; current_t++)
     {
 
-        temp_arg[current_t]   = current_t;
-        customer current = customers.at(current_t);
-        customer* arg = new customer;
+        customer current = customers.at(current_t); // Current customer from customer map
+        customer* arg = new customer; // Allocate memory for customer struct
+        // Set argumants fields
         arg->atm = current.atm;
         arg->amount = current.amount;
         arg->type = current.type;
         arg->sleep_time = current.sleep_time;
         arg->id = current.id;
-        int result = pthread_create(&thread[current_t], NULL, write_buffer, (void *)arg);
+        int result = pthread_create(&thread[current_t], NULL, write_buffer, (void *)arg); // Create customer thread.
         if (result !=0)
         {
             cout << "Error creating thread " << current_t << ". Return code:" << result <<  endl;
@@ -539,13 +528,12 @@ int main(int argc, char** argv)
 
     }
 
-    for(int current_t = 0; current_t < NUMBER_OF_THREADS; current_t++)
+    for(int current_t = 0; current_t < NUMBER_OF_THREADS; current_t++) // Join all customer threads
     {
         pthread_join(thread[current_t], NULL);
     }
 
-    cout << "All payments are completed." << endl;
-
+    // Since all customer threads are joined, set ATM's exit conditions true.
     exit_atm1 = true;
     exit_atm2 = true;
     exit_atm3 = true;
@@ -557,17 +545,10 @@ int main(int argc, char** argv)
     exit_atm9 = true;
     exit_atm10 = true;
 
-
-    cout << "cableTv: " << cableTV_balance << endl;
-    cout << "electricity: " << electricity_balance << endl;
-    cout << "gas: " << gas_balance << endl;
-    cout << "telecommunication: " << telecommunication_balance << endl;
-    cout << "water: " << water_balance << endl;
-
-    string in_file = argv[1];
-    string sub_str = in_file.substr(0, in_file.size()-4);
-    string out_file = sub_str + "_log.txt";
-    print_file(out_file, NUMBER_OF_THREADS);
+    string in_file = argv[1]; // Input file's name
+    string sub_str = in_file.substr(0, in_file.size()-4); // Strip input file's name from .txt
+    string out_file = sub_str + "_log.txt"; // Add _log.txt
+    print_file(out_file, NUMBER_OF_THREADS); // Pass output file name and number of thread to print the results into file.
 
     return 0;
 }
