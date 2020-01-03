@@ -11,6 +11,10 @@
 
 using namespace std;
 
+/*
+ * This projects development can be tracked from: https://github.com/burakberk/Simulation-of-a-Bill-Payment-System.git
+ */
+
 
 // Deposit account mutexes
 pthread_mutex_t cableTV = PTHREAD_MUTEX_INITIALIZER;
