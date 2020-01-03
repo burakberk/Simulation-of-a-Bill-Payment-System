@@ -15,6 +15,7 @@ pthread_mutex_t cableTV = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t electricity = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t gas = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t telecommunication = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t water = PTHREAD_MUTEX_INITIALIZER;
 
 // Declare mutexes for ATM critical sections
 
@@ -57,7 +58,7 @@ struct customer
 {
     int sleep_time;
     int atm;
-    string type;
+    int type;
     int amount;
     int id;
 };
@@ -66,33 +67,44 @@ int cableTV_balance = 0;
 int electricity_balance = 0;
 int gas_balance = 0;
 int telecommunication_balance = 0;
+int water_balance = 0;
 
 vector<customer> atm_buffer(10);
+vector<customer> log_data;
 
 
-void *pay_bill(void *type_param, void *amount_param)
+void pay_bill(int type, int amount)
 {
-    int amount = *((int *) amount_param);
-    int type = *((int *) type_param);
+
     if(type == 1){
         pthread_mutex_lock(&cableTV);
         cableTV_balance += amount;
         pthread_mutex_unlock(&cableTV);
+        /*cout << "tv amount: " << amount << endl;*/
     }
     else if(type == 2){
         pthread_mutex_lock(&electricity);
         electricity_balance += amount;
         pthread_mutex_unlock(&electricity);
+  /*      cout << "electricity amount: " << amount << endl;*/
     }
     else if(type == 3){
         pthread_mutex_lock(&gas);
         gas_balance += amount;
         pthread_mutex_unlock(&gas);
+      /*  cout << "gas amount: " << amount << endl;*/
     }
     else if(type == 4){
         pthread_mutex_lock(&telecommunication);
         telecommunication_balance += amount;
         pthread_mutex_unlock(&telecommunication);
+     /*   cout << "telecommunication amount: " << amount << endl;*/
+    }
+    else if(type == 5){
+        pthread_mutex_lock(&water);
+        water_balance += amount;
+        pthread_mutex_unlock(&water);
+        /*   cout << "telecommunication amount: " << amount << endl;*/
     }
 
 }
@@ -109,37 +121,105 @@ void *write_buffer(void *customer_param){
         atm_buffer[0].amount = current_customer->amount;
         atm_buffer[0].type = current_customer->type;
         atm_buffer[0].atm = current_customer->atm;
-
-        //
+    /*    cout << "amount: " << atm_buffer[0].amount << ", type: " << atm_buffer[0].type << ", atm" << atm_buffer[0].atm << endl;*/
         pthread_mutex_unlock(&m1);
         sem_post(&full1);
 
     }
     else if(atm == 2){
+        sem_wait(&empty2);
+        pthread_mutex_lock(&m2);
+        // do stuff
+        atm_buffer[1].amount = current_customer->amount;
+        atm_buffer[1].type = current_customer->type;
+        atm_buffer[1].atm = current_customer->atm;
+        pthread_mutex_unlock(&m2);
+        sem_post(&full2);
 
     }
     else if(atm == 3){
+        sem_wait(&empty3);
+        pthread_mutex_lock(&m3);
+        // do stuff
+        atm_buffer[2].amount = current_customer->amount;
+        atm_buffer[2].type = current_customer->type;
+        atm_buffer[2].atm = current_customer->atm;
+        pthread_mutex_unlock(&m3);
+        sem_post(&full3);
 
     }
     else if(atm == 4){
-
+        sem_wait(&empty4);
+        pthread_mutex_lock(&m4);
+        // do stuff
+        atm_buffer[3].amount = current_customer->amount;
+        atm_buffer[3].type = current_customer->type;
+        atm_buffer[3].atm = current_customer->atm;
+        pthread_mutex_unlock(&m4);
+        sem_post(&full4);
     }
     else if(atm == 5){
-
+        sem_wait(&empty5);
+        pthread_mutex_lock(&m5);
+        // do stuff
+        atm_buffer[4].amount = current_customer->amount;
+        atm_buffer[4].type = current_customer->type;
+        atm_buffer[4].atm = current_customer->atm;
+        pthread_mutex_unlock(&m5);
+        sem_post(&full5);
     }
     else if(atm == 6){
-
+        sem_wait(&empty6);
+        pthread_mutex_lock(&m6);
+        // do stuff
+        atm_buffer[5].amount = current_customer->amount;
+        atm_buffer[5].type = current_customer->type;
+        atm_buffer[5].atm = current_customer->atm;
+        pthread_mutex_unlock(&m6);
+        sem_post(&full6);
     }
     else if(atm == 7){
+        sem_wait(&empty7);
+        pthread_mutex_lock(&m7);
+        // do stuff
+        atm_buffer[6].amount = current_customer->amount;
+        atm_buffer[6].type = current_customer->type;
+        atm_buffer[6].atm = current_customer->atm;
+        pthread_mutex_unlock(&m7);
+        sem_post(&full7);
 
     }
     else if(atm == 8){
+        sem_wait(&empty8);
+        pthread_mutex_lock(&m8);
+        // do stuff
+        atm_buffer[7].amount = current_customer->amount;
+        atm_buffer[7].type = current_customer->type;
+        atm_buffer[7].atm = current_customer->atm;
+        pthread_mutex_unlock(&m8);
+        sem_post(&full8);
 
     }
     else if(atm == 9){
+        sem_wait(&empty9);
+        pthread_mutex_lock(&m9);
+        // do stuff
+        atm_buffer[8].amount = current_customer->amount;
+        atm_buffer[8].type = current_customer->type;
+        atm_buffer[8].atm = current_customer->atm;
+        pthread_mutex_unlock(&m9);
+        sem_post(&full9);
 
     }
     else if(atm == 10){
+        sem_wait(&empty10);
+        pthread_mutex_lock(&m10);
+        // do stuff
+        atm_buffer[9].amount = current_customer->amount;
+        atm_buffer[9].type = current_customer->type;
+        atm_buffer[9].atm = current_customer->atm;
+        pthread_mutex_unlock(&m10);
+        sem_post(&full10);
 
     }
 
@@ -149,18 +229,15 @@ void *write_buffer(void *customer_param){
 void *read_buffer(void *atm_param){
 
     int atm = *((int *) atm_param);
-
-    cout << "girdim, type: " << atm << endl;
     if(atm == 1){
         while(true) {
             sem_wait(&full1);
             pthread_mutex_lock(&m1);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(0).type, atm_buffer.at(0).amount);
+            log_data.push_back(atm_buffer.at(0));
             pthread_mutex_unlock(&m1);
             sem_post(&empty1);
-            break;
         }
 
     }
@@ -169,11 +246,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full2);
             pthread_mutex_lock(&m2);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(1).type, atm_buffer.at(1).amount);
+            log_data.push_back(atm_buffer.at(1));
             pthread_mutex_unlock(&m2);
             sem_post(&empty2);
-            break;
         }
     }
     else if(atm == 3){
@@ -181,11 +257,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full3);
             pthread_mutex_lock(&m3);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(2).type, atm_buffer.at(2).amount);
+            log_data.push_back(atm_buffer.at(2));
             pthread_mutex_unlock(&m3);
             sem_post(&empty3);
-            break;
         }
     }
     else if(atm == 4){
@@ -193,11 +268,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full4);
             pthread_mutex_lock(&m4);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(3).type, atm_buffer.at(3).amount);
+            log_data.push_back(atm_buffer.at(3));
             pthread_mutex_unlock(&m4);
             sem_post(&empty4);
-            break;
         }
     }
     else if(atm == 5){
@@ -205,11 +279,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full5);
             pthread_mutex_lock(&m5);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(4).type, atm_buffer.at(4).amount);
+            log_data.push_back(atm_buffer.at(4));
             pthread_mutex_unlock(&m5);
             sem_post(&empty5);
-            break;
         }
     }
     else if(atm == 6){
@@ -217,11 +290,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full6);
             pthread_mutex_lock(&m6);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(5).type, atm_buffer.at(5).amount);
+            log_data.push_back(atm_buffer.at(5));
             pthread_mutex_unlock(&m6);
             sem_post(&empty6);
-            break;
         }
     }
     else if(atm == 7){
@@ -229,11 +301,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full7);
             pthread_mutex_lock(&m7);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(6).type, atm_buffer.at(6).amount);
+            log_data.push_back(atm_buffer.at(6));
             pthread_mutex_unlock(&m7);
             sem_post(&empty7);
-            break;
         }
     }
     else if(atm == 8){
@@ -241,11 +312,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full8);
             pthread_mutex_lock(&m8);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(7).type, atm_buffer.at(7).amount);
+            log_data.push_back(atm_buffer.at(7));
             pthread_mutex_unlock(&m8);
             sem_post(&empty8);
-            break;
         }
     }
     else if(atm == 9){
@@ -253,11 +323,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full9);
             pthread_mutex_lock(&m9);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(8).type, atm_buffer.at(8).amount);
+            log_data.push_back(atm_buffer.at(8));
             pthread_mutex_unlock(&m9);
             sem_post(&empty9);
-            break;
         }
     }
     else if(atm == 10){
@@ -265,11 +334,10 @@ void *read_buffer(void *atm_param){
             sem_wait(&full10);
             pthread_mutex_lock(&m10);
             // do stuff
-
-            //
+            pay_bill(atm_buffer.at(9).type, atm_buffer.at(9).amount);
+            log_data.push_back(atm_buffer.at(9));
             pthread_mutex_unlock(&m10);
             sem_post(&empty10);
-            break;
         }
     }
 
@@ -313,6 +381,11 @@ vector<customer> get_input(string file_name){ // Read the input from the text fi
 
     int id_count = -1;
     string line;
+    customer temp;
+    getline(in_file, line);
+    temp.amount = stoi(line);
+    id_count++;
+    customers.push_back(temp);
     while(getline(in_file,line))
     {
         customer temp;
@@ -323,10 +396,23 @@ vector<customer> get_input(string file_name){ // Read the input from the text fi
         temp.sleep_time = stoi(value);
         getline(linestream, value, ',');
         temp.atm = stoi(value);
-        cout << "atm number: " << stoi(value) << endl;
         getline(linestream, value, ',');
-        temp.type = value;
-        cout << "atm number: " << endl;
+        string a = value;
+        if(value == "cableTV"){
+            temp.type = 1;
+        }
+        else if(value == "electricity"){
+            temp.type = 2;
+        }
+        else if(value == "gas"){
+            temp.type = 3;
+        }
+        else if(value == "telecommunication"){
+            temp.type = 4;
+        }
+        else if(value == "water"){
+            temp.type = 5;
+        }
         getline(linestream, value, ',');
         temp.amount = stoi(value);
         temp.id = id_count;
@@ -360,7 +446,7 @@ int main()
 
     // Initialize semaphores
 
-    sem_init(&empty1, 0, 3);
+    sem_init(&empty1, 0, 1);
     sem_init(&empty2, 0, 1);
     sem_init(&empty3, 0, 1);
     sem_init(&empty4, 0, 1);
@@ -383,7 +469,7 @@ int main()
     sem_init(&full10, 0, 0);
 
     vector<customer> customers;
-    customers = get_input("input_me.txt");
+    customers = get_input("deneme.txt");
 
     pthread_t atm_threads[10];
     int temp_arg_atm[10] ;
@@ -403,6 +489,7 @@ int main()
 
     }
 
+    // Creating customer threads
     int NUMBER_OF_THREADS = customers[0].amount; //  First customers actually just presents how many customers there is.
     pthread_t thread[NUMBER_OF_THREADS];
     cout << "Starting all threads..." << endl;
@@ -419,7 +506,6 @@ int main()
         arg->type = current.type;
         arg->sleep_time = current.sleep_time;
         arg->id = current_t;
-        cout << current_t << endl;
         int result = pthread_create(&thread[current_t], NULL, write_buffer, (void *)arg);
         if (result !=0)
         {
@@ -431,10 +517,10 @@ int main()
     /*creating all threads*/
 
 /*Joining all threads*/
-    for(int current_t = 1; current_t < 11; current_t++)
+    /*for(int current_t = 1; current_t < 11; current_t++)
     {
         pthread_join(atm_threads[current_t], NULL);
-    }
+    }*/
 
     for(int current_t = 0; current_t < NUMBER_OF_THREADS; current_t++)
     {
@@ -443,6 +529,13 @@ int main()
 
 /*Joining all threads*/
     cout << "All threads completed." << endl;
+    sleep(10);
+
+    cout << "cableTv: " << cableTV_balance << endl;
+    cout << "electricity: " << electricity_balance << endl;
+    cout << "gas: " << gas_balance << endl;
+    cout << "telecommunication: " << telecommunication_balance << endl;
+    cout << "water: " << water_balance << endl;
 
     return 0;
 }
